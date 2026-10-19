@@ -1,0 +1,25 @@
+cpt_code,description,category
+X1001,"Intravenous infusion, therapeutic or prophylactic, initial hour",administration
+X1002,"Intravenous infusion, each additional hour",administration
+X1003,"Intravenous push, single drug",administration
+X1004,"Subcutaneous or intramuscular injection, therapeutic",administration
+X1005,"Self-administration training, per session",administration
+X2001,"Office or outpatient visit, established patient, low complexity",visit
+X2002,"Office or outpatient visit, established patient, moderate complexity",visit
+X2003,"Office or outpatient visit, new patient, moderate complexity",visit
+X2101,"Emergency department visit, moderate severity",visit
+X2102,"Emergency department visit, high severity",visit
+X2201,"Telehealth visit, established patient",visit
+X3001,"Complement C4, quantitative",lab
+X3002,"C1 esterase inhibitor, antigenic level",lab
+X3003,"C1 esterase inhibitor, functional assay",lab
+X3004,"Complement C1q, quantitative",lab
+X3005,Comprehensive metabolic panel,lab
+X3006,Complete blood count with differential,lab
+X3007,Hemoglobin A1c,lab
+X3008,Lipid panel,lab
+X3101,"Genetic test, SERPING1 gene, full sequence analysis",lab
+X4001,"Laryngoscopy, flexible, diagnostic",procedure
+X4002,"Endotracheal intubation, emergency",procedure
+X4003,"Abdominal ultrasound, complete",procedure
+X4004,CT abdomen and pelvis with contrast,procedure
