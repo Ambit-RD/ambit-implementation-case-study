@@ -137,3 +137,69 @@ JOIN ndc_product AS product
 WHERE claim.claim_type = 'PHARMACY'
 ORDER BY claim.claim_id, line.claim_line
 LIMIT 20;
+
+
+-- ---------------------------------------------------------------------------
+-- "Which drugs treat disease X?"
+--
+-- No table in the data pack links a drug to a disease. These two queries show
+-- two ways to get close: type 2 diabetes from the claims, and rheumatoid
+-- arthritis from the FDA drug classes. Neither is a complete answer, and each one is wrong in its own way. Working out how to
+-- combine and check sources like these is the heart of the exercise.
+-- ---------------------------------------------------------------------------
+
+-- 8. From the claims: drugs filled by members who have the diagnosis.
+--    Pharmacy claims carry no diagnoses, so the link goes through the member.
+--    This finds what those members take, not what treats the disease: expect
+--    drugs for their other conditions in the list too.
+WITH diagnosed_member AS (
+    SELECT DISTINCT claim.member_id
+    FROM claim
+    JOIN claim_diagnosis AS diagnosis
+        ON diagnosis.claim_id = claim.claim_id
+    JOIN icd10cm_code AS icd
+        ON  icd.code = diagnosis.icd10cm_code
+        AND icd.release = 'FY2027'
+    WHERE icd.category_code = 'E11'   -- type 2 diabetes mellitus
+)
+SELECT
+    UPPER(product.nonproprietary_name) AS drug,
+    COUNT(DISTINCT claim.member_id)    AS members,
+    COUNT(*)                           AS claim_lines
+FROM diagnosed_member
+JOIN claim
+    ON claim.member_id = diagnosed_member.member_id
+JOIN claim_line AS line
+    ON line.claim_id = claim.claim_id
+JOIN ndc_package AS package
+    ON package.ndc_11 = line.ndc_11
+JOIN ndc_product AS product
+    ON product.product_id = package.product_id
+WHERE claim.claim_type = 'PHARMACY'
+GROUP BY UPPER(product.nonproprietary_name)
+ORDER BY members DESC
+LIMIT 20;
+
+
+-- 9. From the FDA directory: drugs in a pharmacologic class used for the
+--    disease, with the HCPCS code each package bills under, if it has one.
+--    TNF blockers are one class used for rheumatoid arthritis. You have to
+--    know the class first, and a class is not a disease: these drugs are
+--    approved for other conditions too, and other classes treat it as well.
+--    Drugs the patient takes at home have no HCPCS code here.
+SELECT DISTINCT
+    UPPER(product.nonproprietary_name) AS drug,
+    UPPER(product.proprietary_name)    AS brand,
+    crosswalk.hcpcs_code
+FROM ndc_product_pharm_class AS pharm_class
+JOIN ndc_product AS product
+    ON product.product_id = pharm_class.product_id
+JOIN ndc_package AS package
+    ON package.product_id = product.product_id
+LEFT JOIN ndc_hcpcs_crosswalk AS crosswalk
+    ON  crosswalk.ndc_11 = package.ndc_11
+    AND crosswalk.release = '2026-10'
+    AND crosswalk.crosswalk_type = 'ASP'
+WHERE pharm_class.pharm_class = 'Tumor Necrosis Factor Blocker'
+  AND pharm_class.class_type = 'EPC'
+ORDER BY drug, brand;
