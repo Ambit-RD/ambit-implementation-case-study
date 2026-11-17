@@ -1,8 +1,9 @@
 -- Example joins for the medical codebook data pack.
 --
 -- These show how the tables in CASE_STUDY_DATA_PACK.MEDICAL_CODEBOOK fit together.
--- They are starting points, not answers. The drug and diagnosis used here
--- (infliximab, type 2 diabetes) are only there to keep the results small.
+-- They are starting points, not answers. The drugs and diagnosis used here
+-- (infliximab, type 2 diabetes, TNF blockers) are only there to keep the
+-- results small.
 -- The diagram of the tables is in medical_codebook_erd.png.
 
 USE SCHEMA CASE_STUDY_DATA_PACK.MEDICAL_CODEBOOK;
@@ -76,112 +77,16 @@ WHERE code.category_code = 'E11'
 ORDER BY code.code;
 
 
--- 5. Medical claim -> lines -> HCPCS description.
---    A claim line has a code but no release, so this pins one release.
---    Which release applies to each service date is your decision.
-SELECT
-    claim.claim_id,
-    claim.service_date,
-    line.claim_line,
-    line.hcpcs_code,
-    hcpcs.short_description,
-    line.units
-FROM claim
-JOIN claim_line AS line
-    ON line.claim_id = claim.claim_id
-LEFT JOIN hcpcs_code AS hcpcs
-    ON  hcpcs.hcpcs_code = line.hcpcs_code
-    AND hcpcs.release = '2026-10'
-WHERE claim.claim_type = 'MEDICAL'
-  AND line.hcpcs_code IS NOT NULL
-ORDER BY claim.claim_id, line.claim_line
-LIMIT 20;
-
-
--- 6. Medical claim -> primary diagnosis -> ICD-10-CM description.
---    Diagnoses are per claim, not per line. Position 1 is the primary one.
-SELECT
-    claim.claim_id,
-    claim.service_date,
-    diagnosis.icd10cm_code,
-    icd.code_dotted,
-    icd.long_description
-FROM claim
-JOIN claim_diagnosis AS diagnosis
-    ON  diagnosis.claim_id = claim.claim_id
-    AND diagnosis.position = 1
-LEFT JOIN icd10cm_code AS icd
-    ON  icd.code = diagnosis.icd10cm_code
-    AND icd.release = 'FY2027'
-ORDER BY claim.claim_id
-LIMIT 20;
-
-
--- 7. Pharmacy claim -> lines -> drug package -> product.
---    Pharmacy lines carry an NDC. NDC_11 is the same 11-digit form everywhere.
-SELECT
-    claim.claim_id,
-    claim.service_date,
-    line.ndc_11,
-    product.proprietary_name,
-    product.nonproprietary_name,
-    line.quantity,
-    line.days_supply
-FROM claim
-JOIN claim_line AS line
-    ON line.claim_id = claim.claim_id
-JOIN ndc_package AS package
-    ON package.ndc_11 = line.ndc_11
-JOIN ndc_product AS product
-    ON product.product_id = package.product_id
-WHERE claim.claim_type = 'PHARMACY'
-ORDER BY claim.claim_id, line.claim_line
-LIMIT 20;
-
-
 -- ---------------------------------------------------------------------------
 -- "Which drugs treat disease X?"
 --
--- No table in the data pack links a drug to a disease. These two queries show
--- two ways to get close: type 2 diabetes from the claims, and rheumatoid
--- arthritis from the FDA drug classes. Neither is a complete answer, and each one is wrong in its own way. Working out how to
--- combine and check sources like these is the heart of the exercise.
+-- No table in the data pack links a drug to a disease. This query shows one
+-- way to get close, using rheumatoid arthritis and the FDA drug classes. It
+-- is not a complete answer. Working out how to find and check candidate
+-- drugs is the heart of the exercise.
 -- ---------------------------------------------------------------------------
 
--- 8. From the claims: drugs filled by members who have the diagnosis.
---    Pharmacy claims carry no diagnoses, so the link goes through the member.
---    This finds what those members take, not what treats the disease: expect
---    drugs for their other conditions in the list too.
-WITH diagnosed_member AS (
-    SELECT DISTINCT claim.member_id
-    FROM claim
-    JOIN claim_diagnosis AS diagnosis
-        ON diagnosis.claim_id = claim.claim_id
-    JOIN icd10cm_code AS icd
-        ON  icd.code = diagnosis.icd10cm_code
-        AND icd.release = 'FY2027'
-    WHERE icd.category_code = 'E11'   -- type 2 diabetes mellitus
-)
-SELECT
-    UPPER(product.nonproprietary_name) AS drug,
-    COUNT(DISTINCT claim.member_id)    AS members,
-    COUNT(*)                           AS claim_lines
-FROM diagnosed_member
-JOIN claim
-    ON claim.member_id = diagnosed_member.member_id
-JOIN claim_line AS line
-    ON line.claim_id = claim.claim_id
-JOIN ndc_package AS package
-    ON package.ndc_11 = line.ndc_11
-JOIN ndc_product AS product
-    ON product.product_id = package.product_id
-WHERE claim.claim_type = 'PHARMACY'
-GROUP BY UPPER(product.nonproprietary_name)
-ORDER BY members DESC
-LIMIT 20;
-
-
--- 9. From the FDA directory: drugs in a pharmacologic class used for the
+-- 5. From the FDA directory: drugs in a pharmacologic class used for the
 --    disease, with the HCPCS code each package bills under, if it has one.
 --    TNF blockers are one class used for rheumatoid arthritis. You have to
 --    know the class first, and a class is not a disease: these drugs are

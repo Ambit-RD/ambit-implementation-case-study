@@ -30,7 +30,7 @@ You build a working slice of an AI-assisted medical codebook generator in a Snow
 
 ## Things to know about the data
 
-- **The claims are fictional, but treat them as if they were real.** They include PHI-like fields: names, dates of birth, member IDs, and ZIP codes.
+- **There is no claims or patient data.** The exercise uses reference data only.
 - **CPT is licensed by the AMA**, so we use synthetic codes. Do not substitute real CPT content.
 - **Clean does not mean complete.** The crosswalks cover Medicare Part B drugs only, and not every code in one table has a match in another. Finding and handling those gaps is part of the exercise.
 
