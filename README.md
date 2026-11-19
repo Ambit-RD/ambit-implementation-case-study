@@ -2,7 +2,7 @@
 
 Take-home exercise for the **Applied AI and Software Engineer** role at Ambit (Digital Transformation).
 
-You build a working slice of an AI-assisted medical codebook generator in a Snowflake sandbox that we provide. The data is already loaded there as clean tables, so you can start on the problem straight away.
+You build an app on Snowflake that lets a user create a medical codebook. The user enters a disease name, and the app returns a draft list of the diagnosis codes and drug codes for that disease, which a reviewer checks and approves. You work in a Snowflake sandbox that we provide. The data is already loaded there as clean tables, so you can start on the problem straight away.
 
 ## Start here
 
@@ -31,7 +31,7 @@ You build a working slice of an AI-assisted medical codebook generator in a Snow
 ## Things to know about the data
 
 - **There is no claims or patient data.** The exercise uses reference data only.
-- **CPT is licensed by the AMA**, so we use synthetic codes. Do not substitute real CPT content.
+- **Procedure codes and billing rules are out of scope.** The exercise covers diagnosis codes and drug codes.
 - **Clean does not mean complete.** The crosswalks cover Medicare Part B drugs only, and not every code in one table has a match in another. Finding and handling those gaps is part of the exercise.
 
 Questions: innovation@ambitinc.com
